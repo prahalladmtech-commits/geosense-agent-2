@@ -1,0 +1,11 @@
+{
+  "pipeline": [
+    "data/lidar/processed/autzen_ground.las",
+    {
+      "type": "writers.gdal",
+      "filename": "data/lidar/processed/autzen_dem.tif",
+      "resolution": 1.0,
+      "output_type": "min"
+    }
+  ]
+}
