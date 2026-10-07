@@ -1,6 +1,8 @@
 .env
 data/raw/
 data/shapefiles/
+data/lidar/raw/
+data/streetview/images/
 __pycache__/
 *.pyc
 .ipynb_checkpoints/
