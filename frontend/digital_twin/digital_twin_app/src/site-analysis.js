@@ -7,6 +7,7 @@ export function initializeSiteAnalysis() {
     return;
   }
 
+  // Create Phase 5 analysis panel
   const panel = document.createElement('section');
   panel.className = 'info-card site-analysis-card';
 
@@ -26,19 +27,31 @@ export function initializeSiteAnalysis() {
     </p>
 
     <label for="analysis-latitude">Latitude</label>
-    <input id="analysis-latitude" type="number" step="any"
-      value="22.5535" min="-90" max="90">
+    <input
+      id="analysis-latitude"
+      type="number"
+      step="any"
+      value="22.5535"
+      min="-90"
+      max="90"
+    >
 
     <label for="analysis-longitude">Longitude</label>
-    <input id="analysis-longitude" type="number" step="any"
-      value="88.3520" min="-180" max="180">
+    <input
+      id="analysis-longitude"
+      type="number"
+      step="any"
+      value="88.3520"
+      min="-180"
+      max="180"
+    >
 
     <button id="analyse-location" type="button">
       Analyse Location
     </button>
 
     <p id="analysis-status" aria-live="polite">
-      Backend: Ready to test
+      Backend: Not connected yet.
     </p>
 
     <div id="analysis-result" hidden>
@@ -51,6 +64,7 @@ export function initializeSiteAnalysis() {
         <p>Distance to hospital: <strong id="result-hospital"></strong></p>
         <p>Flood risk: <strong id="result-flood"></strong></p>
         <p>Verdict: <strong id="result-verdict"></strong></p>
+
         <p class="analysis-note">SHAP explanation</p>
         <p>Road: <strong id="shap-road"></strong></p>
         <p>Hospital: <strong id="shap-hospital"></strong></p>
@@ -64,6 +78,7 @@ export function initializeSiteAnalysis() {
         <p>CRS: <strong id="result-crs"></strong></p>
         <p>Data source: <strong id="result-source"></strong></p>
         <p>Confidence: <strong id="result-confidence"></strong></p>
+
         <p class="analysis-note">
           This is a nearest-ground-point elevation estimate,
           not a flood-risk prediction.
@@ -80,6 +95,7 @@ export function initializeSiteAnalysis() {
     sidebar.appendChild(panel);
   }
 
+  // Get interface elements
   const areaSelect = panel.querySelector('#analysis-area');
   const latitudeInput = panel.querySelector('#analysis-latitude');
   const longitudeInput = panel.querySelector('#analysis-longitude');
@@ -91,15 +107,29 @@ export function initializeSiteAnalysis() {
   const kolkataResults = panel.querySelector('#kolkata-results');
   const bhopalResults = panel.querySelector('#bhopal-results');
 
-  // Local backend remains the default.
-  // A public backend URL can be configured using VITE_API_BASE_URL.
+  // Backend configuration:
+  // Local development: http://localhost:8003
+  // Public deployment: configure VITE_API_BASE_URL in .env.production
+  const configuredApiUrl = import.meta.env.VITE_API_BASE_URL;
+
   const apiBaseUrl = (
-    import.meta.env.VITE_API_BASE_URL || 'http://localhost:8003'
-  ).replace(/\/$/, '');
+    configuredApiUrl || 'http://localhost:8003'
+  ).replace(/\/+$/, '');
 
-  const formatNumber = (value, decimals = 3) =>
-    Number(value).toFixed(decimals);
+  const isPublicWebsite =
+    window.location.hostname.endsWith('github.io');
 
+  const formatNumber = (value, decimals = 3) => {
+    const number = Number(value);
+
+    if (!Number.isFinite(number)) {
+      return 'Not available';
+    }
+
+    return number.toFixed(decimals);
+  };
+
+  // Update selected study area
   areaSelect.addEventListener('change', () => {
     resultPanel.hidden = true;
 
@@ -120,11 +150,13 @@ export function initializeSiteAnalysis() {
     status.textContent = 'Study area changed. Ready to analyse.';
   });
 
+  // Analyse selected location
   button.addEventListener('click', async () => {
     const latitude = Number(latitudeInput.value);
     const longitude = Number(longitudeInput.value);
     const area = areaSelect.value;
 
+    // Validate coordinates
     if (
       !Number.isFinite(latitude) ||
       !Number.isFinite(longitude) ||
@@ -133,11 +165,14 @@ export function initializeSiteAnalysis() {
       longitude < -180 ||
       longitude > 180
     ) {
-      status.textContent = 'Enter valid latitude and longitude.';
+      status.textContent =
+        'Enter valid latitude and longitude.';
+
       resultPanel.hidden = true;
       return;
     }
 
+    // Validate Bhopal survey coverage
     if (
       area === 'bhopal' &&
       (
@@ -149,56 +184,84 @@ export function initializeSiteAnalysis() {
     ) {
       status.textContent =
         'Coordinates are outside the Bhopal drone survey coverage.';
+
       resultPanel.hidden = true;
       return;
     }
 
+    // Prevent repeated requests
     button.disabled = true;
     resultPanel.hidden = true;
     status.textContent = 'Analysing location...';
 
     try {
+      // Do not attempt localhost from the public website
+      if (
+        isPublicWebsite &&
+        !configuredApiUrl
+      ) {
+        throw new Error(
+          'Public GeoSense API is not configured yet. The analysis backend is currently available locally only.'
+        );
+      }
+
+      // Select API endpoint
       const endpoint = area === 'bhopal'
         ? `${apiBaseUrl}/api/bhopal/terrain`
         : `${apiBaseUrl}/api/score-location`;
 
+      // Send request
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ latitude, longitude })
+        body: JSON.stringify({
+          latitude,
+          longitude,
+        }),
       });
 
-      const data = await response.json();
+      // Read response safely
+      const data = await response.json().catch(() => null);
 
       if (!response.ok) {
         throw new Error(
-          data.detail || `API error: ${response.status}`
+          data?.detail || `API error: ${response.status}`
+        );
+      }
+
+      if (!data || !data.result) {
+        throw new Error(
+          'The backend returned an invalid response.'
         );
       }
 
       const result = data.result;
 
-      if (!result) {
-        throw new Error('The backend returned an invalid response.');
-      }
-
+      // Display study area
       panel.querySelector('#result-area').textContent =
-        data.study_area;
+        data.study_area || area;
 
+      // Kolkata ML site suitability
       if (area === 'kolkata') {
-        kolkataResults.hidden = false;
-        bhopalResults.hidden = true;
-
         const features = result.features;
         const shap = result.shap_explanation;
 
+        if (!features || !shap) {
+          throw new Error(
+            'Kolkata response is missing features or SHAP explanation.'
+          );
+        }
+
+        kolkataResults.hidden = false;
+        bhopalResults.hidden = true;
+
         panel.querySelector('#result-opportunity').textContent =
-          result.opportunity_score;
+          result.opportunity_score ?? 'Not available';
 
         panel.querySelector('#result-risk').textContent =
-          result.risk_score;
+          result.risk_score ?? 'Not available';
 
         panel.querySelector('#result-road').textContent =
           `${formatNumber(features.dist_road_m)} m`;
@@ -207,21 +270,22 @@ export function initializeSiteAnalysis() {
           `${formatNumber(features.dist_hospital_m)} m`;
 
         panel.querySelector('#result-flood').textContent =
-          features.flood_risk;
+          features.flood_risk ?? 'Not available';
 
         panel.querySelector('#result-verdict').textContent =
-          result.verdict;
+          result.verdict ?? 'Not available';
 
         panel.querySelector('#shap-road').textContent =
-          shap.dist_road_m;
+          shap.dist_road_m ?? 'Not available';
 
         panel.querySelector('#shap-hospital').textContent =
-          shap.dist_hospital_m;
+          shap.dist_hospital_m ?? 'Not available';
 
         panel.querySelector('#shap-flood').textContent =
-          shap.flood_risk;
+          shap.flood_risk ?? 'Not available';
 
       } else {
+        // Bhopal drone terrain analysis
         kolkataResults.hidden = true;
         bhopalResults.hidden = false;
 
@@ -232,29 +296,41 @@ export function initializeSiteAnalysis() {
           `${formatNumber(result.nearest_ground_point_distance_m)} m`;
 
         panel.querySelector('#result-ground-points').textContent =
-          result.ground_points_used.toLocaleString();
+          Number(result.ground_points_used).toLocaleString();
 
         panel.querySelector('#result-crs').textContent =
-          result.crs;
+          result.crs ?? 'Not available';
 
         panel.querySelector('#result-source').textContent =
-          result.data_source;
+          result.data_source ?? 'Not available';
 
         panel.querySelector('#result-confidence').textContent =
-          result.confidence_warning || 'Nearest ground point within 10 m.';
+          result.confidence_warning ||
+          'Nearest ground point within 10 m.';
       }
 
       resultPanel.hidden = false;
-      status.textContent = 'Analysis completed successfully.';
+
+      status.textContent =
+        'Analysis completed successfully.';
 
     } catch (error) {
-      console.error('Site analysis failed:', error);
-      status.textContent = `Analysis failed: ${error.message}`;
+      console.error('GeoSense site analysis failed:', error);
+
+      status.textContent =
+        `Analysis failed: ${error.message}`;
 
     } finally {
       button.disabled = false;
     }
   });
 
-  console.log('GeoSense site-analysis module initialized.');
+  console.log(
+    'GeoSense Phase 5 site-analysis module initialized.'
+  );
+
+  console.log(
+    'GeoSense API endpoint:',
+    apiBaseUrl
+  );
 }
