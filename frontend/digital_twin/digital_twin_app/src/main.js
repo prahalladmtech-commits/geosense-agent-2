@@ -266,7 +266,7 @@ document
     try {
       if (!droneTileset) {
         droneTileset = await Cesium3DTileset.fromUrl(
-          '/tiles/drone_fixed/tileset.json',
+          import.meta.env.BASE_URL + 'tiles/drone_fixed/tileset.json',
         );
 
         viewer.scene.primitives.add(droneTileset);
