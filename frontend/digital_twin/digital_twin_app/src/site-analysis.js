@@ -91,6 +91,12 @@ export function initializeSiteAnalysis() {
   const kolkataResults = panel.querySelector('#kolkata-results');
   const bhopalResults = panel.querySelector('#bhopal-results');
 
+  // Local backend remains the default.
+  // A public backend URL can be configured using VITE_API_BASE_URL.
+  const apiBaseUrl = (
+    import.meta.env.VITE_API_BASE_URL || 'http://localhost:8003'
+  ).replace(/\/$/, '');
+
   const formatNumber = (value, decimals = 3) =>
     Number(value).toFixed(decimals);
 
@@ -134,8 +140,12 @@ export function initializeSiteAnalysis() {
 
     if (
       area === 'bhopal' &&
-      (latitude < 23.2539 || latitude > 23.2561 ||
-       longitude < 77.4563 || longitude > 77.4587)
+      (
+        latitude < 23.2539 ||
+        latitude > 23.2561 ||
+        longitude < 77.4563 ||
+        longitude > 77.4587
+      )
     ) {
       status.textContent =
         'Coordinates are outside the Bhopal drone survey coverage.';
@@ -149,8 +159,8 @@ export function initializeSiteAnalysis() {
 
     try {
       const endpoint = area === 'bhopal'
-        ? 'http://localhost:8003/api/bhopal/terrain'
-        : 'http://localhost:8003/api/score-location';
+        ? `${apiBaseUrl}/api/bhopal/terrain`
+        : `${apiBaseUrl}/api/score-location`;
 
       const response = await fetch(endpoint, {
         method: 'POST',
@@ -169,6 +179,10 @@ export function initializeSiteAnalysis() {
       }
 
       const result = data.result;
+
+      if (!result) {
+        throw new Error('The backend returned an invalid response.');
+      }
 
       panel.querySelector('#result-area').textContent =
         data.study_area;
@@ -206,6 +220,7 @@ export function initializeSiteAnalysis() {
 
         panel.querySelector('#shap-flood').textContent =
           shap.flood_risk;
+
       } else {
         kolkataResults.hidden = true;
         bhopalResults.hidden = false;
@@ -231,9 +246,11 @@ export function initializeSiteAnalysis() {
 
       resultPanel.hidden = false;
       status.textContent = 'Analysis completed successfully.';
+
     } catch (error) {
       console.error('Site analysis failed:', error);
       status.textContent = `Analysis failed: ${error.message}`;
+
     } finally {
       button.disabled = false;
     }
