@@ -1,38 +1,49 @@
-# site_scorer.py
-# GeoSense Phase 1
-# Site suitability scoring for Kolkata
+
+# ============================================================
+# GeoSense Agent — Phase 1
+# Site Suitability Scoring for Kolkata
+# Windows and Docker compatible
+# ============================================================
 
 import os
+from pathlib import Path
+
 import joblib
 import pandas as pd
 import geopandas as gpd
+import shap
+
 from shapely.geometry import Point
 from db_connection import get_engine
-import shap
 
 
 # ============================================================
 # CONFIGURATION
 # ============================================================
 
-PROJECT_DIR = r"C:\GeoSense_Agent"
+# Automatically detect project root.
+# Windows: C:\GeoSense_Agent
+# Docker:  /app (when project is copied to /app)
+
+PROJECT_DIR = Path(__file__).resolve().parents[2]
 
 # Kolkata UTM Zone 45N
-# Used for accurate distance calculations in metres
+# Used for accurate distance calculations in metres.
 METRIC_CRS = 32645
 
-# These MUST match the features used to train the model
+# These MUST match the features used to train the model.
 FEATURE_NAMES = [
     "dist_road_m",
     "dist_hospital_m",
     "flood_risk"
 ]
 
-MODEL_FILE = os.path.join(
-    PROJECT_DIR,
-    "models",
-    "saved",
-    "site_scorer_model.pkl"
+# Trained model location.
+MODEL_FILE = (
+    PROJECT_DIR
+    / "models"
+    / "saved"
+    / "site_scorer_model.pkl"
 )
 
 
@@ -46,15 +57,15 @@ _explainer = None
 
 def _load_model():
     """
-    Load the trained Random Forest/XGBoost model
-    and create the SHAP explainer.
+    Load the trained classification model
+    and create its SHAP explainer.
     """
 
     global _model, _explainer
 
     if _model is None:
 
-        if not os.path.exists(MODEL_FILE):
+        if not MODEL_FILE.is_file():
             raise FileNotFoundError(
                 f"Model file not found:\n{MODEL_FILE}"
             )
@@ -76,9 +87,9 @@ def _get_features_for_point(lat, lon, engine):
     latitude and longitude.
 
     Features:
-        - distance to nearest road
-        - distance to nearest hospital
-        - flood risk
+        - Distance to nearest road
+        - Distance to nearest hospital
+        - Flood risk
     """
 
     # --------------------------------------------------------
@@ -157,12 +168,8 @@ def _get_features_for_point(lat, lon, engine):
     )
 
     # --------------------------------------------------------
-    # IMPORTANT:
     # Project hospital polygons FIRST.
     # Then calculate centroids.
-    #
-    # This prevents:
-    # "Geometry is in a geographic CRS" warning.
     # --------------------------------------------------------
 
     if not hospitals_area.empty:
@@ -268,14 +275,13 @@ def score_location(lat: float, lon: float) -> dict:
     -------
     dict
         Contains:
-
-        latitude
-        longitude
-        opportunity_score
-        risk_score
-        features
-        shap_explanation
-        verdict
+            latitude
+            longitude
+            opportunity_score
+            risk_score
+            features
+            shap_explanation
+            verdict
     """
 
     # --------------------------------------------------------
@@ -317,13 +323,12 @@ def score_location(lat: float, lon: float) -> dict:
         engine
     )
 
-    # --------------------------------------------------------
-    # Create model input
-    #
-    # IMPORTANT:
+    # ========================================================
+    # CREATE MODEL INPUT
+    # ========================================================
+
     # Use DataFrame with the exact feature names
     # used during model training.
-    # --------------------------------------------------------
 
     X = pd.DataFrame(
         [[

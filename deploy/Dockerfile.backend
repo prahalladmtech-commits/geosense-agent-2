@@ -1,0 +1,45 @@
+
+# ============================================================
+# GeoSense Agent — FastAPI Backend
+# ============================================================
+
+FROM python:3.11-slim
+
+# Python configuration
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+# Project directory
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    libgdal-dev \
+    libgeos-dev \
+    libproj-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Python dependencies
+COPY backend/requirements.txt ./backend/requirements.txt
+
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r backend/requirements.txt
+
+# Copy FastAPI application
+COPY backend/app ./backend/app
+
+# Copy Phase 1 ML scoring code
+COPY src/phase1_ml ./src/phase1_ml
+
+# Copy database connection module
+COPY db_connection.py ./db_connection.py
+
+# Create directory for externally mounted Kolkata model
+RUN mkdir -p /app/models/saved
+
+# API port
+EXPOSE 8000
+
+# Start FastAPI backend
+CMD ["python", "-m", "uvicorn", "app.main:app", "--app-dir", "backend", "--host", "0.0.0.0", "--port", "8000"]

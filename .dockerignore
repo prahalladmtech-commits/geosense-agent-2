@@ -1,0 +1,44 @@
+# Git history
+.git/
+
+# Environment files and secrets
+.env
+.env.*
+!.env.example
+
+# Python cache
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+.pytest_cache/
+.mypy_cache/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Node.js dependencies and builds
+node_modules/
+**/node_modules/
+**/dist/
+
+# Local caches and datasets
+cache/
+data/
+outputs/
+*.las
+*.laz
+*.tif
+*.tiff
+*.parquet
+
+# Large training archives
+*.zip
+GeoSense_Unet_Training/
+Phase2_Exercise4/
+
+# Temporary files
+*.bak
+*.phase5-backup
+.gitignore.phase5-backup

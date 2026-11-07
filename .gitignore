@@ -1,9 +1,73 @@
+
+# Environment variables and secrets
 .env
-data/raw/
-data/shapefiles/
-data/lidar/raw/
-data/streetview/images/
+.env.*
+!.env.example
+deploy/key.json
+key.json
+*.pem
+*.key
+.streamlit/secrets.toml
+
+# Python cache
 __pycache__/
-*.pyc
+*.py[cod]
 .ipynb_checkpoints/
+.pytest_cache/
+.mypy_cache/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Machine learning model files
 models/saved/*.pkl
+models/saved/*.joblib
+models/saved/*.pt
+models/saved/*.pth
+models/saved/*.onnx
+
+# Large datasets and generated data
+cache/
+data/raw/
+data/lidar/
+data/streetview/images/
+data/streetview/results/
+data/satellite/
+data/bhopal_osm/
+outputs/point_clouds/
+
+# Large OpenStreetMap shapefiles
+data/shapefiles/osm/
+
+# Training archives
+*.zip
+GeoSense_Unet_Training/
+Phase2_Exercise4/
+
+# Generated files
+*.las
+*.laz
+*.tif
+*.tiff
+*.parquet
+
+# Deployment state
+*.tfstate
+*.tfstate.*
+
+# Node.js
+node_modules/
+dist/
+
+# Phase 5 backup
+.gitignore.phase5-backup
+*.bak
+*.phase5-backup
+
+# Generated Cesium 3D Tiles
+frontend/digital_twin/digital_twin_app/public/tiles/
+
+# Accidental empty file
+/frontend/digital_twin/digital_twin_app/{
