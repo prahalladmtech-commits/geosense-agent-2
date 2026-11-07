@@ -255,6 +255,9 @@ document
     const status = document.querySelector('#drone-status');
     const message = document.querySelector('#map-message');
     const button = document.querySelector('#load-drone');
+    const toggleButton = document.querySelector('#toggle-drone');
+    const visibilityStatus =
+      document.querySelector('#visibility-status');
 
     if (!viewer || button.disabled) return;
 
@@ -272,12 +275,22 @@ document
         viewer.scene.primitives.add(droneTileset);
       }
 
+      // Ensure the tileset is visible after loading.
+      droneTileset.show = true;
+
       status.textContent =
         'Tileset loaded. Zooming to point cloud...';
 
       message.textContent = 'Drone tiles loaded.';
 
       await viewer.zoomTo(droneTileset);
+
+      // Update the point-cloud display controls.
+      toggleButton.disabled = false;
+      toggleButton.textContent = 'Hide point cloud';
+
+      visibilityStatus.textContent =
+        'Point cloud is visible.';
 
       status.textContent =
         'Full drone point cloud loaded successfully.';
@@ -293,6 +306,16 @@ document
 
       message.textContent =
         'Drone tiles failed to load.';
+
+      if (droneTileset) {
+        droneTileset.show = false;
+      }
+
+      toggleButton.disabled = true;
+      toggleButton.textContent = 'Hide point cloud';
+
+      visibilityStatus.textContent =
+        'Point cloud loading failed.';
 
     } finally {
       button.disabled = false;
