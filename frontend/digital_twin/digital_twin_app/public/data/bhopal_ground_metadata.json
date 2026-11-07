@@ -1,0 +1,25 @@
+{
+    "project": "GeoSense Agent",
+    "study_area": "Bhopal, Madhya Pradesh, India",
+    "data_source": "Bhopal drone survey LAS",
+    "classification": 2,
+    "source_crs": "EPSG:32643",
+    "coordinate_crs": "EPSG:4326",
+    "point_count": 167992,
+    "binary_file": "bhopal_ground_points.bin",
+    "binary_format": "float32 little-endian",
+    "values_per_point": [
+        "latitude",
+        "longitude",
+        "ground_elevation_m"
+    ],
+    "bytes_per_point": 12,
+    "analysis_method": "Nearest classified ground point",
+    "limitation": "Not a flood-risk prediction or continuous terrain model.",
+    "latitude_min": 23.253956402054794,
+    "latitude_max": 23.256045015001597,
+    "longitude_min": 77.45639792887158,
+    "longitude_max": 77.45859543362445,
+    "elevation_min_m": 474.05499267578125,
+    "elevation_max_m": 516.5159912109375
+}
